@@ -1,0 +1,111 @@
+// Schema do Lume. Os nomes das tabelas e colunas seguem snake_case via @map /
+// @@map — o TypeScript fica em camelCase sem que o SQL precise mudar.
+//
+// Alterou algo aqui? Gere a migration com:
+//   npx prisma migrate dev --name <descricao>
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  // citext: "Pedro" e "pedro" são o mesmo usuário, garantido pelo banco e não
+  // por uma checagem na aplicação (que teria corrida entre ler e inserir).
+  username     String   @unique @db.Citext
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  habits     Habit[]
+  habitMarks HabitMark[]
+  days       Day[]
+  tasks      Task[]
+  years      Year[]
+  yearMarks  YearMark[]
+
+  @@map("users")
+}
+
+/// Mapa do Mês: os 7 hábitos de cada mês (slot 1..7)
+model Habit {
+  userId   Int    @map("user_id")
+  monthKey String @map("month_key") // 'YYYY-MM'
+  slot     Int // 1..7
+  name     String @default("")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, monthKey, slot])
+  @@map("habits")
+}
+
+/// Mapa do Mês: marcações do anel radial
+model HabitMark {
+  userId   Int    @map("user_id")
+  monthKey String @map("month_key")
+  slot     Int
+  day      Int // 1..31
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, monthKey, slot, day])
+  @@map("habit_marks")
+}
+
+/// Planner Diário: cabeçalho do dia
+model Day {
+  userId Int    @map("user_id")
+  date   String // 'YYYY-MM-DD'
+  notes  String @default("")
+  rating Int? // 1..5 (carinhas)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, date])
+  @@map("days")
+}
+
+/// Planner Diário: tarefas ('normal' | 'inegociavel')
+model Task {
+  id       Int    @id @default(autoincrement())
+  userId   Int    @map("user_id")
+  date     String
+  kind     String
+  text     String
+  done     Int    @default(0)
+  position Int    @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date, kind, position], map: "tasks_by_day")
+  @@map("tasks")
+}
+
+/// Mapa do Ano
+model Year {
+  userId Int    @map("user_id")
+  year   Int
+  metas  String @default("")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, year])
+  @@map("years")
+}
+
+model YearMark {
+  userId Int @map("user_id")
+  year   Int
+  month  Int // 1..12
+  day    Int // 1..31
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, year, month, day])
+  @@map("year_marks")
+}

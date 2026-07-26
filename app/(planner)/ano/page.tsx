@@ -3,7 +3,7 @@ import PageHeader from "@/components/layout/PageHeader";
 import PeriodNav from "@/components/layout/PeriodNav";
 import YearBoard from "@/components/planner/year/YearBoard";
 import { requireUser } from "@/lib/auth";
-import { all, one } from "@/lib/db";
+import { db } from "@/lib/db";
 
 export const metadata: Metadata = { title: "Mapa do Ano · Lume" };
 
@@ -22,14 +22,14 @@ export default async function AnoPage({
       : new Date().getFullYear();
 
   const [row, markRows] = await Promise.all([
-    one<{ metas: string }>(
-      "SELECT metas FROM years WHERE user_id = $1 AND year = $2",
-      [uid, year],
-    ),
-    all<{ month: number; day: number }>(
-      "SELECT month, day FROM year_marks WHERE user_id = $1 AND year = $2",
-      [uid, year],
-    ),
+    db().year.findUnique({
+      where: { userId_year: { userId: uid, year } },
+      select: { metas: true },
+    }),
+    db().yearMark.findMany({
+      where: { userId: uid, year },
+      select: { month: true, day: true },
+    }),
   ]);
 
   const marks = markRows.map((m) => `${m.month}:${m.day}`);

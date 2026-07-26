@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import DayBoard from "@/components/planner/day/DayBoard";
 import { requireUser } from "@/lib/auth";
-import { all, one } from "@/lib/db";
+import { db } from "@/lib/db";
 import { parseDateKey } from "@/lib/dates";
 import type { Task } from "./actions";
 
@@ -16,18 +16,21 @@ export default async function DiaPage({
   const { d } = await searchParams;
   const date = parseDateKey(d);
 
-  const [day, tasks] = await Promise.all([
-    one<{ notes: string; rating: number | null }>(
-      "SELECT notes, rating FROM days WHERE user_id = $1 AND date = $2",
-      [uid, date],
-    ),
-    all<Task>(
-      `SELECT id, text, done, kind, position FROM tasks
-       WHERE user_id = $1 AND date = $2
-       ORDER BY position, id`,
-      [uid, date],
-    ),
+  const [day, rows] = await Promise.all([
+    db().day.findUnique({
+      where: { userId_date: { userId: uid, date } },
+      select: { notes: true, rating: true },
+    }),
+    db().task.findMany({
+      where: { userId: uid, date },
+      select: { id: true, text: true, done: true, kind: true, position: true },
+      orderBy: [{ position: "asc" }, { id: "asc" }],
+    }),
   ]);
+
+  // `kind` é texto no banco; aqui volta a ser a união de "normal" e
+  // "inegociavel" que o resto do código usa.
+  const tasks = rows as Task[];
 
   return (
     <DayBoard

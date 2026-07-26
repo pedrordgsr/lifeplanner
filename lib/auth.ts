@@ -2,7 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
-import { one } from "./db";
+import { db } from "./db";
 import {
   SESSION_COOKIE,
   signSession,
@@ -11,7 +11,7 @@ import {
   type SessionPayload,
 } from "./session";
 
-export type User = { id: number; username: string; password_hash: string };
+export type User = { id: number; username: string; passwordHash: string };
 
 export async function getSession(): Promise<SessionPayload | null> {
   const jar = await cookies();
@@ -20,10 +20,10 @@ export async function getSession(): Promise<SessionPayload | null> {
 
   // Um cookie assinado ainda pode apontar para um usuário que não existe mais
   // (banco recriado, conta removida). Confere sempre no banco.
-  const user = await one<{ username: string }>(
-    "SELECT username FROM users WHERE id = $1",
-    [session.uid],
-  );
+  const user = await db().user.findUnique({
+    where: { id: session.uid },
+    select: { username: true },
+  });
   if (!user || user.username.toLowerCase() !== session.username.toLowerCase())
     return null;
 
@@ -55,33 +55,32 @@ export async function endSession() {
   jar.delete(SESSION_COOKIE);
 }
 
-/** Busca sem diferenciar maiúsculas, igual ao índice único de `lower(username)`. */
-export async function findUser(username: string): Promise<User | undefined> {
-  return one<User>(
-    "SELECT id, username, password_hash FROM users WHERE lower(username) = lower($1)",
-    [username.trim()],
-  );
+/** A coluna é `citext`, então a busca já ignora maiúsculas. */
+export async function findUser(username: string): Promise<User | null> {
+  return db().user.findUnique({
+    where: { username: username.trim() },
+    select: { id: true, username: true, passwordHash: true },
+  });
 }
 
 /** Devolve `null` se o nome já estiver em uso. */
 export async function createUser(username: string, password: string) {
   const name = username.trim();
-  const hash = await bcrypt.hash(password, 10);
+  const passwordHash = await bcrypt.hash(password, 10);
 
   try {
-    const row = await one<{ id: number }>(
-      "INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING id",
-      [name, hash],
-    );
-    return row ? { id: row.id, username: name } : null;
+    return await db().user.create({
+      data: { username: name, passwordHash },
+      select: { id: true, username: true },
+    });
   } catch (err) {
-    // 23505 = unique_violation: alguém registrou o mesmo nome entre a checagem
-    // e este INSERT. O índice único é a garantia real, não a checagem.
-    if ((err as { code?: string }).code === "23505") return null;
+    // P2002 = violação de unicidade: alguém registrou o mesmo nome entre a
+    // checagem e este INSERT. O índice único é a garantia real, não a checagem.
+    if ((err as { code?: string }).code === "P2002") return null;
     throw err;
   }
 }
 
 export function checkPassword(user: User, password: string) {
-  return bcrypt.compare(password, user.password_hash);
+  return bcrypt.compare(password, user.passwordHash);
 }

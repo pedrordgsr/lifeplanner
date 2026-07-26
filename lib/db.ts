@@ -1,27 +1,30 @@
 import "server-only";
-import { Pool, type QueryResultRow } from "pg";
+import { PrismaClient } from "@/generated/prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 declare global {
-  var __plannerPool: Pool | undefined;
+  var __plannerPrisma: PrismaClient | undefined;
 }
 
 /**
- * O pool é criado na primeira consulta, não na importação do módulo: assim o
+ * O client é criado na primeira consulta, não na importação do módulo: assim o
  * `next build` (que avalia os módulos do servidor sem executar as páginas) não
  * quebra caso DATABASE_URL ainda não esteja configurada.
  */
-function getPool(): Pool {
-  if (globalThis.__plannerPool) return globalThis.__plannerPool;
-
+function createClient(): PrismaClient {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString)
     throw new Error(
       "DATABASE_URL não está definida. Copie .env.example para .env.local (ou configure a variável na Vercel).",
     );
 
-  const isLocal = /@(localhost|127\.0\.0\.1)[:/]/.test(connectionString);
-
-  const pool = new Pool({
+  // O Prisma 7 fala com o Postgres através de um driver adapter — aqui, o `pg`.
+  //
+  // TLS não é configurado aqui de propósito: quem manda é o `sslmode` da
+  // própria DATABASE_URL, como em qualquer cliente Postgres. Neon e Supabase
+  // entregam a URL com `sslmode=require`; um Postgres local sem TLS não deve
+  // levar `sslmode` nenhum.
+  const adapter = new PrismaPg({
     connectionString,
     // Pequeno de propósito: a Vercel pode manter várias instâncias vivas, e
     // cada uma abre o seu próprio pool. Poucas conexões por instância evitam
@@ -30,40 +33,16 @@ function getPool(): Pool {
     max: 5,
     idleTimeoutMillis: 10_000,
     connectionTimeoutMillis: 10_000,
-    // Neon e Supabase têm certificado público válido; só o Postgres local fica
-    // sem TLS.
-    ssl: isLocal ? undefined : { rejectUnauthorized: true },
   });
 
-  // Sempre no global: em dev o hot reload reavalia este módulo a cada
-  // alteração, e sem o cache cada recarga vazaria um pool novo.
-  globalThis.__plannerPool = pool;
-  return pool;
+  return new PrismaClient({ adapter });
 }
 
-/** Todas as linhas da consulta. */
-export async function all<T extends QueryResultRow>(
-  sql: string,
-  params: unknown[] = [],
-): Promise<T[]> {
-  const { rows } = await getPool().query<T>(sql, params);
-  return rows;
-}
-
-/** A primeira linha, ou `undefined` se a consulta não trouxe nada. */
-export async function one<T extends QueryResultRow>(
-  sql: string,
-  params: unknown[] = [],
-): Promise<T | undefined> {
-  const { rows } = await getPool().query<T>(sql, params);
-  return rows[0];
-}
-
-/** INSERT/UPDATE/DELETE sem retorno. Devolve quantas linhas foram afetadas. */
-export async function run(
-  sql: string,
-  params: unknown[] = [],
-): Promise<number> {
-  const { rowCount } = await getPool().query(sql, params);
-  return rowCount ?? 0;
+/**
+ * Sempre no global: em dev o hot reload reavalia este módulo a cada alteração,
+ * e sem o cache cada recarga vazaria um pool de conexões novo.
+ */
+export function db(): PrismaClient {
+  globalThis.__plannerPrisma ??= createClient();
+  return globalThis.__plannerPrisma;
 }

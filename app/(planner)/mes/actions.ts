@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { all, run } from "@/lib/db";
+import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 
 const MONTH_KEY_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -26,11 +26,14 @@ export async function saveHabitName(
   assertMonthKey(monthKeyValue);
   assertSlot(slot);
 
-  await run(
-    `INSERT INTO habits (user_id, month_key, slot, name) VALUES ($1, $2, $3, $4)
-     ON CONFLICT (user_id, month_key, slot) DO UPDATE SET name = excluded.name`,
-    [uid, monthKeyValue, slot, name.slice(0, 80)],
-  );
+  const nome = name.slice(0, 80);
+  await db().habit.upsert({
+    where: {
+      userId_monthKey_slot: { userId: uid, monthKey: monthKeyValue, slot },
+    },
+    create: { userId: uid, monthKey: monthKeyValue, slot, name: nome },
+    update: { name: nome },
+  });
 
   revalidatePath("/mes");
 }
@@ -48,18 +51,22 @@ export async function toggleHabitMark(
     throw new Error("Dia inválido");
 
   if (done) {
-    await run(
-      `INSERT INTO habit_marks (user_id, month_key, slot, day)
-       VALUES ($1, $2, $3, $4)
-       ON CONFLICT DO NOTHING`,
-      [uid, monthKeyValue, slot, day],
-    );
+    await db().habitMark.upsert({
+      where: {
+        userId_monthKey_slot_day: {
+          userId: uid,
+          monthKey: monthKeyValue,
+          slot,
+          day,
+        },
+      },
+      create: { userId: uid, monthKey: monthKeyValue, slot, day },
+      update: {},
+    });
   } else {
-    await run(
-      `DELETE FROM habit_marks
-       WHERE user_id = $1 AND month_key = $2 AND slot = $3 AND day = $4`,
-      [uid, monthKeyValue, slot, day],
-    );
+    await db().habitMark.deleteMany({
+      where: { userId: uid, monthKey: monthKeyValue, slot, day },
+    });
   }
   // Sem revalidatePath: o cliente já aplicou a mudança de forma otimista.
 }
@@ -73,22 +80,39 @@ export async function copyHabitsFromPreviousMonth(monthKeyValue: string) {
   const prev = new Date(y, m - 2, 1);
   const prevKey = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}`;
 
-  // Um único INSERT ... SELECT no lugar da transação que o SQLite pedia: a
-  // cópia inteira acontece numa só ida ao banco, e atômica.
-  await run(
-    `INSERT INTO habits (user_id, month_key, slot, name)
-     SELECT user_id, $2::text, slot, name FROM habits
-     WHERE user_id = $1 AND month_key = $3 AND name <> ''
-     ON CONFLICT (user_id, month_key, slot) DO UPDATE SET name = excluded.name`,
-    [uid, monthKeyValue, prevKey],
+  const anteriores = await db().habit.findMany({
+    where: { userId: uid, monthKey: prevKey, name: { not: "" } },
+    select: { slot: true, name: true },
+  });
+
+  // No máximo 7 linhas, e $transaction garante que ou copia tudo ou nada.
+  await db().$transaction(
+    anteriores.map((h) =>
+      db().habit.upsert({
+        where: {
+          userId_monthKey_slot: {
+            userId: uid,
+            monthKey: monthKeyValue,
+            slot: h.slot,
+          },
+        },
+        create: {
+          userId: uid,
+          monthKey: monthKeyValue,
+          slot: h.slot,
+          name: h.name,
+        },
+        update: { name: h.name },
+      }),
+    ),
   );
 
   revalidatePath("/mes");
 
-  const current = await all<{ slot: number; name: string }>(
-    "SELECT slot, name FROM habits WHERE user_id = $1 AND month_key = $2",
-    [uid, monthKeyValue],
-  );
+  const current = await db().habit.findMany({
+    where: { userId: uid, monthKey: monthKeyValue },
+    select: { slot: true, name: true },
+  });
 
   return Array.from(
     { length: 7 },

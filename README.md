@@ -9,7 +9,7 @@ Precisa de um Postgres. Copie `.env.example` para `.env.local`, preencha
 `DATABASE_URL` e `SESSION_SECRET`, e crie as tabelas:
 
 ```bash
-npm run db:setup
+npx prisma migrate deploy
 ```
 
 Depois:
@@ -89,14 +89,37 @@ conheceria. Em desenvolvimento há um valor de conveniência. Nunca versione
 
 ## Onde os dados ficam
 
-PostgreSQL, acessado pelo `pg` a partir de [lib/db.ts](lib/db.ts) — que expõe só
-três funções: `all`, `one` e `run`. O schema fica em
-[lib/schema.sql](lib/schema.sql) e é aplicado por `npm run db:setup`, que é
-idempotente: pode rodar de novo a cada deploy sem apagar nada.
+PostgreSQL via **Prisma**. O schema é [prisma/schema.prisma](prisma/schema.prisma)
+e a conexão vive em [lib/db.ts](lib/db.ts) — um único client, guardado no global
+para o hot reload não vazar pools.
 
-Use sempre a connection string **pooled** (Neon: host com `-pooler`; Supabase:
-porta 6543) — em serverless cada instância abre o seu próprio pool, e o pooler é
-quem impede o banco de estourar o limite de conexões.
+| Comando | O que faz |
+| --- | --- |
+| `npm run db:migrate` | mudou o schema? gera e aplica a migration (desenvolvimento) |
+| `npm run db:deploy` | aplica as migrations existentes (produção) |
+| `npm run db:studio` | abre o Prisma Studio para olhar os dados |
+
+O `postinstall` roda `prisma generate` sozinho — é o que faz o client existir na
+Vercel, onde o `node_modules` vem do cache e o `npm install` pode não rodar.
+
+Detalhes que valem saber:
+
+- **Tabelas e colunas seguem snake_case** (`month_key`, `password_hash`) via
+  `@map`/`@@map`, enquanto o TypeScript usa camelCase.
+- **`username` é `citext`** — é o banco, e não uma checagem na aplicação, que
+  impede "Pedro" e "pedro" de virarem duas contas. A extensão é criada na
+  primeira migration.
+- **Duas operações usam SQL cru** (`$queryRaw`/`$executeRaw`), com o motivo
+  comentado no código: criar tarefa calculando a posição no próprio INSERT, e
+  mover as pendentes de um dia para outro. As duas são trabalho de conjunto —
+  em chamadas Prisma virariam uma leitura mais um UPDATE por linha, e a
+  primeira ainda abriria uma corrida entre ler o máximo e gravar.
+- Use sempre a connection string **pooled** (Neon: host com `-pooler`; Supabase:
+  porta 6543) — em serverless cada instância abre o seu próprio pool, e o pooler
+  é quem impede o banco de estourar o limite de conexões.
+- **TLS sai do `sslmode` da URL**, não de configuração no código. Banco na nuvem
+  pede `sslmode=require`; Postgres local sem TLS não deve levar `sslmode`, senão
+  a conexão morre com "server does not support SSL connections".
 
 ## Deploy na Vercel
 
@@ -111,8 +134,10 @@ quem impede o banco de estourar o limite de conexões.
    produção:
 
    ```bash
-   DATABASE_URL='<url-de-producao>' npm run db:setup
+   DATABASE_URL='<url-de-producao>' npx prisma migrate deploy
    ```
+
+   Repita isso a cada deploy que traga migrations novas.
 
 4. **Importar o projeto** na Vercel e fazer deploy. Não há configuração de build
    a mexer: `next build` roda como está.
@@ -149,8 +174,7 @@ components/
     year/            YearBoard, MonthRow
 
 lib/
-  db.ts              pool do Postgres + helpers all/one/run
-  schema.sql         schema do banco (aplicado por npm run db:setup)
+  db.ts              client do Prisma (singleton, adapter pg)
   auth.ts            sessão, hash de senha, requireUser()
   session.ts         assinatura/verificação do JWT (edge-safe)
   dates.ts           meses, dias por mês, ano bissexto
@@ -158,10 +182,12 @@ lib/
   cn.ts              junção de classes
   hooks/useAutosave  gravação automática com debounce
 
-scripts/
-  setup-db.mjs       aplica lib/schema.sql no DATABASE_URL
+prisma/
+  schema.prisma      modelos e mapeamento para as tabelas
+  migrations/        histórico versionado do schema
 
+prisma.config.ts     configuração da CLI do Prisma
 proxy.ts             proteção de rotas
 ```
 
-Next.js 16 (App Router), React 19, Tailwind v4, TypeScript, PostgreSQL.
+Next.js 16 (App Router), React 19, Tailwind v4, TypeScript, Prisma 7, PostgreSQL.

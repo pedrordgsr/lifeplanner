@@ -3,7 +3,7 @@ import PageHeader from "@/components/layout/PageHeader";
 import PeriodNav from "@/components/layout/PeriodNav";
 import MonthBoard from "@/components/planner/month/MonthBoard";
 import { requireUser } from "@/lib/auth";
-import { all } from "@/lib/db";
+import { db } from "@/lib/db";
 import {
   MONTH_NAMES,
   daysInMonth,
@@ -26,14 +26,14 @@ export default async function MesPage({
   const days = daysInMonth(year, month);
 
   const [habitRows, markRows] = await Promise.all([
-    all<{ slot: number; name: string }>(
-      "SELECT slot, name FROM habits WHERE user_id = $1 AND month_key = $2",
-      [uid, key],
-    ),
-    all<{ slot: number; day: number }>(
-      "SELECT slot, day FROM habit_marks WHERE user_id = $1 AND month_key = $2",
-      [uid, key],
-    ),
+    db().habit.findMany({
+      where: { userId: uid, monthKey: key },
+      select: { slot: true, name: true },
+    }),
+    db().habitMark.findMany({
+      where: { userId: uid, monthKey: key },
+      select: { slot: true, day: true },
+    }),
   ]);
 
   const names = Array.from(
