@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <linearGradient id="lume-mark" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3a8073"/>
+      <stop offset="100%" stop-color="#3a6b8e"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="10" fill="url(#lume-mark)"/>
+  <g fill="none" stroke="#fff" stroke-linecap="round" stroke-opacity=".92">
+    <path d="M16 7.5a8.5 8.5 0 1 1-8.5 8.5" stroke-width="2.1"/>
+    <path d="M16 12a4 4 0 1 1-4 4" stroke-width="2.1"/>
+  </g>
+</svg>

@@ -9,12 +9,18 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
+  applicationName: "Lume Life Planner",
   title: {
     default: "Lume Life Planner",
     template: "%s",
   },
   description:
     "Planner interativo e tranquilo: mapa do mês, planner diário e mapa do ano.",
+  appleWebApp: {
+    capable: true,
+    title: "Lume",
+    statusBarStyle: "default",
+  },
 };
 
 /**

@@ -65,6 +65,15 @@ export function Exit(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function Download(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Stroke className="h-4 w-4" {...props}>
+      <path d="M10 3.5v9m0 0 3.25-3.25M10 12.5 6.75 9.25" />
+      <path d="M4 14.5v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-1" />
+    </Stroke>
+  );
+}
+
 export function Sun(props: SVGProps<SVGSVGElement>) {
   return (
     <Stroke className="h-4 w-4" {...props}>

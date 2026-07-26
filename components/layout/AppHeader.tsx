@@ -2,6 +2,7 @@ import Link from "next/link";
 import Logo from "@/components/brand/Logo";
 import NavLinks from "./NavLinks";
 import ThemeToggle from "@/components/theme/ThemeToggle";
+import InstallAppButton from "@/components/pwa/InstallAppButton";
 import { Exit } from "@/components/ui/Icons";
 import { logoutAction } from "@/app/(auth)/actions";
 
@@ -24,6 +25,7 @@ export default function AppHeader({ username }: { username: string }) {
           <span className="hidden text-sm text-muted sm:inline">
             @{username}
           </span>
+          <InstallAppButton />
           <ThemeToggle />
           <form action={logoutAction}>
             <button
