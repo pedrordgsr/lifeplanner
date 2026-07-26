@@ -11,7 +11,8 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "Lume",
     description:
       "Planner interativo e tranquilo para hábitos, dias e metas.",
-    start_url: "/",
+    // Ao tocar no ícone, abre o planner. Sem sessão, o proxy envia ao login.
+    start_url: "/mes",
     scope: "/",
     display: "standalone",
     background_color: "#f1f7f5",

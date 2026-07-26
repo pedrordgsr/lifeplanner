@@ -39,7 +39,7 @@ export default function DateNav({
           value={date}
           onChange={(e) => e.target.value && onPick(e.target.value)}
           aria-label="Data"
-          className="bg-transparent px-1 text-[0.9375rem] font-medium tabular-nums text-ink outline-none"
+          className="bg-transparent px-1 text-base font-medium tabular-nums text-ink outline-none sm:text-[0.9375rem]"
         />
         <IconButton
           label="Próximo dia"

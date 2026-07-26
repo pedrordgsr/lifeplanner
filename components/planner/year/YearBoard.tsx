@@ -80,7 +80,7 @@ export default function YearBoard({
           onBlur={metas.flush}
           rows={2}
           placeholder="Escreva em uma frase…"
-          className="mt-4 w-full resize-none rounded-xl bg-transparent p-1.5 text-[0.9375rem] leading-relaxed outline-none transition-colors duration-200 placeholder:text-faint hover:bg-surface-soft focus:bg-surface-soft"
+          className="mt-4 w-full resize-none rounded-xl bg-transparent p-1.5 text-base leading-relaxed outline-none transition-colors duration-200 placeholder:text-faint hover:bg-surface-soft focus:bg-surface-soft sm:text-[0.9375rem]"
         />
 
         <StatRow

@@ -11,7 +11,7 @@ import { cn } from "@/lib/cn";
 
 const INPUT = cn(
   "w-full rounded-xl border border-line bg-surface-soft px-3.5 py-2.5",
-  "text-[0.9375rem] text-ink placeholder:text-faint",
+  "text-base text-ink placeholder:text-faint sm:text-[0.9375rem]",
   "transition-colors duration-200 outline-none",
   "hover:border-line-strong focus:border-accent focus:bg-surface",
 );
@@ -33,7 +33,7 @@ export default function Field({
 }
 
 const INLINE = cn(
-  "min-w-0 flex-1 rounded-md bg-transparent px-1.5 py-1 text-[0.9375rem]",
+  "min-w-0 flex-1 rounded-md bg-transparent px-1.5 py-1 text-base sm:text-[0.9375rem]",
   "outline-none placeholder:text-faint",
   "transition-colors duration-200 hover:bg-surface-sunk focus:bg-surface-sunk",
 );

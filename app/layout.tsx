@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import ThemeScript, { THEME_META_COLOR } from "@/components/theme/ThemeScript";
+import PwaStartRedirect from "@/components/pwa/PwaStartRedirect";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -46,7 +47,10 @@ export default function RootLayout({
       <head>
         <ThemeScript />
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <PwaStartRedirect />
+        {children}
+      </body>
     </html>
   );
 }

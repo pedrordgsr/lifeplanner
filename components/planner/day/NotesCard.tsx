@@ -35,7 +35,7 @@ export default function NotesCard({
           onBlur={onFlush}
           placeholder={placeholder}
           // `w-full` anula a largura intrínseca do textarea (atributo cols).
-          className="mt-4 min-h-28 w-full flex-1 resize-none rounded-xl bg-transparent p-1.5 text-[0.9375rem] leading-relaxed outline-none transition-colors duration-200 placeholder:text-faint hover:bg-surface-soft focus:bg-surface-soft"
+          className="mt-4 min-h-28 w-full flex-1 resize-none rounded-xl bg-transparent p-1.5 text-base leading-relaxed outline-none transition-colors duration-200 placeholder:text-faint hover:bg-surface-soft focus:bg-surface-soft sm:text-[0.9375rem]"
         />
       </div>
     </Card>

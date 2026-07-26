@@ -119,7 +119,7 @@ export default function TaskList({
           onChange={(e) => setDraft(e.target.value)}
           placeholder={placeholder}
           maxLength={300}
-          className="min-w-0 flex-1 bg-transparent py-0.5 text-[0.9375rem] outline-none placeholder:text-faint"
+          className="min-w-0 flex-1 bg-transparent py-0.5 text-base outline-none placeholder:text-faint sm:text-[0.9375rem]"
         />
       </form>
     </div>
