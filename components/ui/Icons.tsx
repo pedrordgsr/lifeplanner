@@ -90,3 +90,63 @@ export function Moon(props: SVGProps<SVGSVGElement>) {
     </Stroke>
   );
 }
+
+/* --- Ícones da navegação: um por seção do planner. --- */
+
+/** Mapa do Mês — os anéis da roda de hábitos. */
+export function Rings(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Stroke className="h-5 w-5" {...props}>
+      <circle cx="10" cy="10" r="6.6" />
+      <circle cx="10" cy="10" r="3" />
+    </Stroke>
+  );
+}
+
+/** Planner Diário — a lista de tarefas marcáveis. */
+export function Checklist(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Stroke className="h-5 w-5" {...props}>
+      <path d="M3.4 6.3 4.6 7.5 6.9 5.2" />
+      <path d="M3.4 12.6 4.6 13.8 6.9 11.5" />
+      <path d="M9.6 6.4h7M9.6 12.7h7" />
+    </Stroke>
+  );
+}
+
+/** Mapa do Ano — a grade de doze meses. */
+export function CalendarGrid(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Stroke className="h-5 w-5" {...props}>
+      <rect x="3" y="4.4" width="14" height="12.4" rx="2.2" />
+      <path d="M3 8.4h14" />
+      <path d="M6.9 2.9v2.8M13.1 2.9v2.8" />
+    </Stroke>
+  );
+}
+
+export function User(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Stroke className="h-5 w-5" {...props}>
+      <circle cx="10" cy="7.1" r="3.1" />
+      <path d="M4.3 16.6c0-2.9 2.6-4.5 5.7-4.5s5.7 1.6 5.7 4.5" />
+    </Stroke>
+  );
+}
+
+export function Pencil(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Stroke className="h-4 w-4" {...props}>
+      <path d="M13.4 3.8a1.75 1.75 0 0 1 2.5 2.5l-8.4 8.4-3.3 1 1-3.3 8.2-8.6Z" />
+    </Stroke>
+  );
+}
+
+export function Key(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Stroke className="h-4 w-4" {...props}>
+      <circle cx="7" cy="10" r="3.3" />
+      <path d="M10.3 10h6.4m-1.7 0v2.3m-2.4-2.3v2.3" />
+    </Stroke>
+  );
+}

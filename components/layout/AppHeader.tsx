@@ -1,41 +1,32 @@
 import Link from "next/link";
 import Logo from "@/components/brand/Logo";
 import NavLinks from "./NavLinks";
-import ThemeToggle from "@/components/theme/ThemeToggle";
 import InstallAppButton from "@/components/pwa/InstallAppButton";
-import { Exit } from "@/components/ui/Icons";
-import { logoutAction } from "@/app/(auth)/actions";
+import ProfileButton from "@/components/account/ProfileButton";
 
-/** Barra fixa do topo: marca, navegação e a conta em uso. */
+/**
+ * Barra fixa do topo — só no desktop. No celular ela não existe: a navegação
+ * virou a pílula do rodapé (BottomNav) e a conta, a folha de perfil que ela
+ * abre, tudo ao alcance do polegar.
+ */
 export default function AppHeader({ username }: { username: string }) {
   return (
-    <header className="no-print sticky top-0 z-30 border-b border-line/80 bg-bg/80 backdrop-blur-xl">
-      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-6 gap-y-2.5 px-4 py-3 sm:gap-y-3 sm:px-8 sm:py-3.5">
+    <header className="no-print sticky top-0 z-30 hidden border-b border-line/80 bg-bg/80 backdrop-blur-xl sm:block">
+      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-8 py-3.5">
         <Link href="/mes" className="shrink-0">
-          {/* No celular só a marca curta cabe ao lado do botão de sair. */}
           <Logo compact />
         </Link>
 
-        {/* No celular a navegação vira barra fixa no rodapé (BottomNav). */}
-        <div className="hidden sm:block">
-          <NavLinks />
-        </div>
+        <NavLinks />
 
         <div className="ml-auto flex items-center gap-2.5">
-          <span className="hidden text-sm text-muted sm:inline">
-            @{username}
-          </span>
+          <span className="text-sm text-muted">@{username}</span>
           <InstallAppButton />
-          <ThemeToggle />
-          <form action={logoutAction}>
-            <button
-              type="submit"
-              aria-label="Sair da conta"
-              className="grid h-9 w-9 place-items-center rounded-full border border-line bg-surface text-muted transition-colors duration-200 hover:border-line-strong hover:bg-accent-soft hover:text-accent-ink"
-            >
-              <Exit />
-            </button>
-          </form>
+          <ProfileButton
+            username={username}
+            className="grid h-9 w-9 place-items-center rounded-full border border-line bg-surface text-muted transition-colors duration-200 hover:border-line-strong hover:bg-accent-soft hover:text-accent-ink"
+            iconClassName="h-4 w-4"
+          />
         </div>
       </div>
     </header>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { cn } from "@/lib/cn";
 import { Download } from "@/components/ui/Icons";
 
 type BeforeInstallPromptEvent = Event & {
@@ -28,7 +29,11 @@ function isIOS() {
  * O Chrome entrega o evento de instalação sob demanda. Já o Safari no iOS não
  * o implementa, por isso o mesmo botão explica o caminho nativo de instalação.
  */
-export default function InstallAppButton() {
+export default function InstallAppButton({
+  className,
+}: {
+  className?: string;
+}) {
   const deferredPrompt = useRef<BeforeInstallPromptEvent | null>(null);
   const [ready, setReady] = useState(false);
   const [installed, setInstalled] = useState(false);
@@ -81,10 +86,12 @@ export default function InstallAppButton() {
     setHelp(isIOS() ? "ios" : "browser");
   }
 
+  // Some por completo quando não há o que instalar — quem chama pode
+  // envolvê-lo em separadores sem medo de deixar uma moldura vazia.
   if (!ready || installed) return null;
 
   return (
-    <div className="relative">
+    <div className={cn("relative", className)}>
       <button
         type="button"
         onClick={install}

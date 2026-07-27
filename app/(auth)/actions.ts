@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import {
+  USERNAME_RE,
   checkPassword,
   createUser,
   endSession,
@@ -10,8 +11,6 @@ import {
 } from "@/lib/auth";
 
 export type AuthState = { error?: string };
-
-const USERNAME_RE = /^[a-zA-Z0-9._-]{3,24}$/;
 
 export async function loginAction(
   _prev: AuthState,

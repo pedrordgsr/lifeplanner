@@ -13,6 +13,9 @@ import {
 
 export type User = { id: number; username: string; passwordHash: string };
 
+/** Regra do nome de usuário — vale no registro e ao renomear a conta. */
+export const USERNAME_RE = /^[a-zA-Z0-9._-]{3,24}$/;
+
 export async function getSession(): Promise<SessionPayload | null> {
   const jar = await cookies();
   const session = await verifySession(jar.get(SESSION_COOKIE)?.value);
@@ -63,6 +66,14 @@ export async function findUser(username: string): Promise<User | null> {
   });
 }
 
+/** Busca pelo id da sessão — para conferir a senha antes de mexer na conta. */
+export async function findUserById(id: number): Promise<User | null> {
+  return db().user.findUnique({
+    where: { id },
+    select: { id: true, username: true, passwordHash: true },
+  });
+}
+
 /** Devolve `null` se o nome já estiver em uso. */
 export async function createUser(username: string, password: string) {
   const name = username.trim();
@@ -83,4 +94,29 @@ export async function createUser(username: string, password: string) {
 
 export function checkPassword(user: User, password: string) {
   return bcrypt.compare(password, user.passwordHash);
+}
+
+/**
+ * Troca o nome de usuário. Devolve `null` se o nome já for de outra conta —
+ * quem chama precisa reabrir a sessão, porque o cookie carrega o nome antigo
+ * e `getSession()` o confere contra o banco.
+ */
+export async function renameUser(id: number, username: string) {
+  try {
+    return await db().user.update({
+      where: { id },
+      data: { username: username.trim() },
+      select: { id: true, username: true },
+    });
+  } catch (err) {
+    if ((err as { code?: string }).code === "P2002") return null;
+    throw err;
+  }
+}
+
+export async function setPassword(id: number, password: string) {
+  await db().user.update({
+    where: { id },
+    data: { passwordHash: await bcrypt.hash(password, 10) },
+  });
 }

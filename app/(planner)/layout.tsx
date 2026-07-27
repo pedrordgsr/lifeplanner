@@ -12,11 +12,12 @@ export default async function PlannerLayout({
   return (
     <div className="flex min-h-dvh flex-col">
       <AppHeader username={user.username} />
-      {/* Espaço extra embaixo no celular para a barra de navegação fixa. */}
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-6 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:px-8 sm:py-10">
+      {/* No celular não há cabeçalho: o conteúdo começa no topo e reserva
+          espaço embaixo para a pílula de navegação flutuante. */}
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-[calc(1.5rem+env(safe-area-inset-top))] pb-[calc(6rem+env(safe-area-inset-bottom))] sm:px-8 sm:py-10">
         {children}
       </main>
-      <BottomNav />
+      <BottomNav username={user.username} />
     </div>
   );
 }
