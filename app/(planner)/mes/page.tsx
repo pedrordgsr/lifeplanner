@@ -25,10 +25,11 @@ export default async function MesPage({
   const key = monthKey(year, month);
   const days = daysInMonth(year, month);
 
-  const [habitRows, markRows] = await Promise.all([
+  const [habits, markRows] = await Promise.all([
     db().habit.findMany({
       where: { userId: uid, monthKey: key },
       select: { slot: true, name: true },
+      orderBy: { slot: "asc" },
     }),
     db().habitMark.findMany({
       where: { userId: uid, monthKey: key },
@@ -36,12 +37,11 @@ export default async function MesPage({
     }),
   ]);
 
-  const names = Array.from(
-    { length: 7 },
-    (_, i) => habitRows.find((h) => h.slot === i + 1)?.name ?? "",
-  );
+  // A lista de hábitos do mês é o que existe no banco — nem sempre sete. Marcas
+  // de hábitos apagados podem sobrar de um mês antigo; ficam de fora.
+  const slots = new Set(habits.map((h) => h.slot));
   const marks = markRows
-    .filter((r) => r.day <= days)
+    .filter((r) => r.day <= days && slots.has(r.slot))
     .map((r) => `${r.slot}:${r.day}`);
 
   const prev = shiftMonth(year, month, -1);
@@ -71,7 +71,7 @@ export default async function MesPage({
         year={year}
         month={month}
         days={days}
-        initialNames={names}
+        initialHabits={habits}
         initialMarks={marks}
       />
     </div>

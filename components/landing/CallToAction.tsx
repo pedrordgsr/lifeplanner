@@ -25,7 +25,7 @@ export default function CallToAction({ loggedIn }: { loggedIn: boolean }) {
           <p className="mt-4 leading-relaxed text-pretty text-ink-soft">
             {loggedIn
               ? "Continue de onde parou — a última marcação já está salva."
-              : "Crie sua conta em um minuto, escolha sete hábitos e marque o primeiro quadradinho. O resto vem no seu ritmo."}
+              : "Crie sua conta em um minuto, escolha seus hábitos — quantos quiser — e marque o primeiro quadradinho. O resto vem no seu ritmo."}
           </p>
 
           <div className="mt-9 flex flex-wrap justify-center gap-3">

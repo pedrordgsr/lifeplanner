@@ -48,6 +48,17 @@ export function Plus(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+/** Tarefa fixa — o alfinete que prende a tarefa em todas as semanas. */
+export function Pin(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Stroke className="h-3.5 w-3.5" {...props}>
+      <path d="M6.9 3.4h6.2" />
+      <path d="M8.3 3.4v5.3l-1.4 1.7h6.2l-1.4-1.7V3.4" />
+      <path d="M10 10.4v6.2" />
+    </Stroke>
+  );
+}
+
 export function Close(props: SVGProps<SVGSVGElement>) {
   return (
     <Stroke className="h-3.5 w-3.5" {...props}>
@@ -114,13 +125,13 @@ export function Checklist(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-/** Mapa do Ano — a grade de doze meses. */
-export function CalendarGrid(props: SVGProps<SVGSVGElement>) {
+/** Planejamento Semanal — as colunas dos dias da semana. */
+export function WeekColumns(props: SVGProps<SVGSVGElement>) {
   return (
     <Stroke className="h-5 w-5" {...props}>
-      <rect x="3" y="4.4" width="14" height="12.4" rx="2.2" />
-      <path d="M3 8.4h14" />
-      <path d="M6.9 2.9v2.8M13.1 2.9v2.8" />
+      <rect x="2.8" y="4.4" width="14.4" height="12.4" rx="2.2" />
+      <path d="M2.8 8h14.4" />
+      <path d="M7.6 8v8.8M12.4 8v8.8" />
     </Stroke>
   );
 }

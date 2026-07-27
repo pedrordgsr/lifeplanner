@@ -7,7 +7,7 @@ const EXTRAS = [
   },
   {
     title: "Copiar do mês anterior",
-    text: "Comece o mês novo com os mesmos sete hábitos do anterior, em um clique.",
+    text: "Comece o mês novo com os mesmos hábitos do anterior, em um clique.",
   },
   {
     title: "Mover para amanhã",

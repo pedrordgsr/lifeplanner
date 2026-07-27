@@ -1,14 +1,17 @@
 "use client";
 
-import { ACCENT, FAINT, HABIT_COLORS, INK, SURFACE_SUNK } from "@/lib/theme";
+import { ACCENT, FAINT, INK, SURFACE_SUNK, habitColor } from "@/lib/theme";
+import { habitLabel, type HabitItem } from "@/lib/habits";
 
 const SIZE = 640;
 const CX = SIZE / 2;
 const CY = SIZE / 2;
 const OUTER_R = 246;
-const INNER_R = 104;
-const RINGS = 7;
-const RING_W = (OUTER_R - INNER_R) / RINGS;
+/** Espessura que um anel gostaria de ter — a mesma dos sete originais. */
+const PREFERRED_RING_W = 20.3;
+/** Limites do miolo: com poucos hábitos ele cresce, com muitos ele aperta. */
+const MIN_INNER_R = 68;
+const MAX_INNER_R = 212;
 const TOTAL_SWEEP = 280; // graus varridos pelo mês; o resto é a abertura
 const CELL_GAP = 0.9; // respiro entre células, em graus
 
@@ -32,30 +35,45 @@ function sectorPath(rOuter: number, rInner: number, a1: number, a2: number) {
   return `M${x1},${y1} A${rOuter},${rOuter} 0 ${large} 1 ${x2},${y2} L${x3},${y3} A${rInner},${rInner} 0 ${large} 0 ${x4},${y4} Z`;
 }
 
-/** Anel 0 é o mais externo — o hábito 1, como na folha impressa. */
-function ringRadii(ring: number) {
-  const rOuter = OUTER_R - ring * RING_W - 1.6;
-  return { rOuter, rInner: rOuter - RING_W + 1.6 };
-}
-
 /**
- * Retrato do mês inteiro — 7 anéis de hábitos × os dias. É só leitura:
- * quem marca é o painel de hoje ou a grade, em HabitGrid/TodayHabits.
+ * Retrato do mês inteiro — um anel por hábito × os dias. É só leitura: quem
+ * marca é o painel de hoje ou a grade, em HabitGrid/TodayHabits.
  */
 export default function HabitWheel({
   days,
-  names,
+  habits,
   marks,
   todayDay,
   total,
 }: {
   days: number;
-  names: string[];
+  habits: HabitItem[];
   marks: Set<string>;
   todayDay: number | null;
   total: number;
 }) {
+  const rings = habits.length;
+  if (!rings) return null;
+
   const step = TOTAL_SWEEP / days;
+
+  // O miolo se ajusta à quantidade de anéis para que nenhum fique gordo demais
+  // (poucos hábitos) nem virem fios (muitos).
+  const innerR = Math.min(
+    MAX_INNER_R,
+    Math.max(MIN_INNER_R, OUTER_R - rings * PREFERRED_RING_W),
+  );
+  const ringW = (OUTER_R - innerR) / rings;
+  const pad = Math.min(1.6, ringW * 0.2);
+
+  /** Anel 0 é o mais externo — o hábito 1, como na folha impressa. */
+  function ringRadii(ring: number) {
+    const rOuter = OUTER_R - ring * ringW - pad;
+    return { rOuter, rInner: rOuter - ringW + pad };
+  }
+
+  // Com anéis muito finos as guias da abertura viram borrão; some com elas.
+  const showGuides = ringW >= 9;
 
   return (
     <svg
@@ -64,10 +82,10 @@ export default function HabitWheel({
       role="group"
       aria-label="Roda de hábitos do mês"
     >
-      {Array.from({ length: RINGS }, (_, ring) => {
-        const slot = ring + 1;
+      {habits.map(({ slot, name }, ring) => {
         const { rOuter, rInner } = ringRadii(ring);
-        const color = HABIT_COLORS[ring];
+        const color = habitColor(ring);
+        const habitName = habitLabel(name, ring);
 
         return (
           <g key={slot}>
@@ -75,9 +93,7 @@ export default function HabitWheel({
               const day = d + 1;
               const a1 = d * step + CELL_GAP / 2;
               const a2 = (d + 1) * step - CELL_GAP / 2;
-              const key = `${slot}:${day}`;
-              const on = marks.has(key);
-              const habitName = names[ring]?.trim() || `Hábito ${slot}`;
+              const on = marks.has(`${slot}:${day}`);
 
               return (
                 <path
@@ -121,32 +137,34 @@ export default function HabitWheel({
       </g>
 
       {/* Guias numeradas na abertura da roda */}
-      {Array.from({ length: RINGS }, (_, ring) => {
-        const { rOuter, rInner } = ringRadii(ring);
-        const yMid = CY - (rOuter + rInner) / 2;
-        return (
-          <g key={ring}>
-            <line
-              x1={CX - 86}
-              y1={yMid}
-              x2={CX - 10}
-              y2={yMid}
-              style={{ stroke: HABIT_COLORS[ring] }}
-              strokeWidth={1.2}
-              strokeLinecap="round"
-              strokeDasharray="1 5"
-              opacity={0.5}
-            />
-            <circle
-              cx={CX - 96}
-              cy={yMid}
-              r={3.2}
-              style={{ fill: HABIT_COLORS[ring] }}
-              opacity={0.85}
-            />
-          </g>
-        );
-      })}
+      {showGuides &&
+        habits.map(({ slot }, ring) => {
+          const { rOuter, rInner } = ringRadii(ring);
+          const yMid = CY - (rOuter + rInner) / 2;
+          const color = habitColor(ring);
+          return (
+            <g key={slot}>
+              <line
+                x1={CX - 86}
+                y1={yMid}
+                x2={CX - 10}
+                y2={yMid}
+                style={{ stroke: color }}
+                strokeWidth={1.2}
+                strokeLinecap="round"
+                strokeDasharray="1 5"
+                opacity={0.5}
+              />
+              <circle
+                cx={CX - 96}
+                cy={yMid}
+                r={3.2}
+                style={{ fill: color }}
+                opacity={0.85}
+              />
+            </g>
+          );
+        })}
 
       {/* Centro: total de marcações */}
       {/* Centro: no celular só o número, grande e centralizado; a partir de sm

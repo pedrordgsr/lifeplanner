@@ -12,24 +12,38 @@ import {
 const W = 920;
 const H = 300;
 const PAD = { top: 20, right: 20, bottom: 34, left: 44 };
-const MAX = 7;
+/** Quantas linhas de grade cabem sem virar pauta de caderno. */
+const MAX_TICKS = 7;
 
-/** Hábitos cumpridos por dia ao longo do mês, de 0/7 a 7/7. */
+/**
+ * Hábitos cumpridos por dia ao longo do mês, de 0/N a N/N — N é a quantidade
+ * de hábitos que o usuário criou para o mês.
+ */
 export default function ProgressChart({
   perDay,
   days,
   todayDay,
+  max,
 }: {
   perDay: number[];
   days: number;
   todayDay: number | null;
+  /** Total de hábitos do mês: o topo da escala. */
+  max: number;
 }) {
   const plotW = W - PAD.left - PAD.right;
   const plotH = H - PAD.top - PAD.bottom;
+  const top = Math.max(max, 1);
 
   const x = (day: number) =>
     PAD.left + ((day - 1) / Math.max(days - 1, 1)) * plotW;
-  const y = (value: number) => PAD.top + plotH - (value / MAX) * plotH;
+  const y = (value: number) => PAD.top + plotH - (value / top) * plotH;
+
+  // Com muitos hábitos a escala pula de 2 em 2, de 3 em 3… e o topo sempre entra.
+  const tickStep = Math.ceil(top / MAX_TICKS);
+  const ticks: number[] = [];
+  for (let v = 0; v <= top; v += tickStep) ticks.push(v);
+  if (ticks[ticks.length - 1] !== top) ticks.push(top);
 
   const points = perDay.map((v, i) => [x(i + 1), y(v)] as const);
   const line = points.map(([px, py]) => `${px},${py}`).join(" ");
@@ -41,28 +55,28 @@ export default function ProgressChart({
         viewBox={`0 0 ${W} ${H}`}
         className="block h-auto w-full min-w-[36rem]"
         role="img"
-        aria-label={`Hábitos cumpridos por dia: ${perDay.join(", ")}`}
+        aria-label={`Hábitos cumpridos por dia, de 0 a ${top}: ${perDay.join(", ")}`}
       >
-        {/* Grade horizontal 0/7 … 7/7 */}
-        {Array.from({ length: MAX + 1 }, (_, i) => (
-          <g key={i}>
+        {/* Grade horizontal 0/N … N/N */}
+        {ticks.map((v) => (
+          <g key={v}>
             <line
               x1={PAD.left}
-              y1={y(i)}
+              y1={y(v)}
               x2={W - PAD.right}
-              y2={y(i)}
-              style={{ stroke: i === 0 ? CHART_GRID : CHART_GRID_FAINT }}
+              y2={y(v)}
+              style={{ stroke: v === 0 ? CHART_GRID : CHART_GRID_FAINT }}
               strokeWidth={1}
             />
             <text
               x={PAD.left - 12}
-              y={y(i)}
+              y={y(v)}
               textAnchor="end"
               dominantBaseline="central"
               fontSize={10.5}
               style={{ fill: CHART_LABEL }}
             >
-              {i}/7
+              {v}/{top}
             </text>
           </g>
         ))}
@@ -105,7 +119,7 @@ export default function ProgressChart({
               }}
               strokeWidth={filled ? 1.5 : 1}
             >
-              <title>{`Dia ${i + 1}: ${perDay[i]}/7`}</title>
+              <title>{`Dia ${i + 1}: ${perDay[i]}/${top}`}</title>
             </circle>
           );
         })}

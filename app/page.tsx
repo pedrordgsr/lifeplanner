@@ -10,7 +10,7 @@ import { getSession } from "@/lib/auth";
 export const metadata: Metadata = {
   title: "Lume Life Planner · hábitos, dias e metas em um lugar calmo",
   description:
-    "Planner interativo em três páginas: mapa do mês com a roda de hábitos, planner diário e mapa do ano. Salva sozinho e cabe no celular.",
+    "Planner interativo em três páginas: mapa do mês com a roda de hábitos, planner diário e planejamento semanal com gráficos de rotina. Salva sozinho e cabe no celular.",
 };
 
 /**

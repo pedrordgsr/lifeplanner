@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     template: "%s",
   },
   description:
-    "Planner interativo e tranquilo: mapa do mês, planner diário e mapa do ano.",
+    "Planner interativo e tranquilo: mapa do mês, planner diário e planejamento semanal.",
   appleWebApp: {
     capable: true,
     title: "Lume",

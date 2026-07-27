@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import TaskRow from "./TaskRow";
+import TaskItem from "@/components/planner/TaskItem";
 import { Plus } from "@/components/ui/Icons";
 import {
   addTask,
@@ -93,9 +93,10 @@ export default function TaskList({
           <li className="px-1 py-2 text-sm text-faint">{emptyHint}</li>
         )}
         {mine.map((task) => (
-          <TaskRow
+          <TaskItem
             key={task.id}
-            task={task}
+            text={task.text}
+            done={task.done === 1}
             onToggle={() => toggle(task)}
             onCommit={(text) => commitText(task, text)}
             onRemove={() => remove(task)}

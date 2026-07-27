@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
-import { CalendarGrid, Checklist, Rings } from "@/components/ui/Icons";
+import { Checklist, Rings, WeekColumns } from "@/components/ui/Icons";
 
 export const LINKS = [
   { href: "/mes", label: "Hábitos", Icon: Rings },
   { href: "/dia", label: "Lista diária", Icon: Checklist },
-  { href: "/ano", label: "Visão anual", Icon: CalendarGrid },
+  { href: "/semana", label: "Rotina semanal", Icon: WeekColumns },
 ];
 
 /**

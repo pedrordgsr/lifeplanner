@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Card from "@/components/ui/Card";
 import Face from "@/components/planner/day/Face";
-import { HABIT_COLORS, LINE, SURFACE_SUNK, YEAR_MARK } from "@/lib/theme";
+import { ACCENT, LINE, HABIT_COLORS, SURFACE_SUNK } from "@/lib/theme";
 
 /** Marcações fixas das ilustrações — nada de aleatório, para não brigar com a hidratação. */
 const on = (a: number, b: number, rate: number) =>
@@ -67,20 +67,32 @@ function DayArt() {
   );
 }
 
-function YearArt() {
+function WeekArt() {
   return (
     <svg viewBox="0 0 200 96" className="w-full" aria-hidden>
-      {Array.from({ length: 6 }, (_, row) =>
-        Array.from({ length: 22 }, (_, col) => (
-          <circle
-            key={`${row}-${col}`}
-            cx={col * 9 + 6}
-            cy={row * 16 + 10}
-            r={3.2}
-            style={{ fill: on(row + 3, col, 0.48) ? YEAR_MARK : LINE }}
+      {Array.from({ length: 7 }, (_, col) => (
+        <g key={col}>
+          <rect
+            x={col * 28 + 5}
+            y={8}
+            width={11}
+            height={4}
+            rx={2}
+            style={{ fill: LINE }}
           />
-        )),
-      )}
+          {Array.from({ length: 4 }, (_, row) => (
+            <rect
+              key={row}
+              x={col * 28 + 5}
+              y={row * 17 + 22}
+              width={18}
+              height={9}
+              rx={3}
+              style={{ fill: on(row + 2, col, 0.58) ? ACCENT : LINE }}
+            />
+          ))}
+        </g>
+      ))}
     </svg>
   );
 }
@@ -93,7 +105,7 @@ const FEATURES: Array<{
 }> = [
   {
     eyebrow: "Mapa do mês",
-    title: "Sete hábitos, o mês inteiro em uma roda",
+    title: "Seus hábitos, o mês inteiro em uma roda",
     text: "Marque tocando na pastilha de hoje ou preencha a grade do mês inteiro. A roda e o gráfico de progresso acompanham sozinhos.",
     art: <MonthArt />,
   },
@@ -104,10 +116,10 @@ const FEATURES: Array<{
     art: <DayArt />,
   },
   {
-    eyebrow: "Mapa do ano",
-    title: "Doze meses de relance",
-    text: "Suas metas do ano no topo e os doze meses com um círculo por dia. Um olhar e você vê a sequência inteira — fevereiro bissexto incluído.",
-    art: <YearArt />,
+    eyebrow: "Planejamento semanal",
+    title: "A rotina que se repete toda semana",
+    text: "Monte a lista de cada dia da semana uma vez: ela volta igual na semana seguinte. Os gráficos mostram como você tem se saído e em que dia a rotina costuma escorregar.",
+    art: <WeekArt />,
   },
 ];
 
@@ -120,11 +132,11 @@ export default function Features() {
       <div className="max-w-2xl">
         <p className="label-eyebrow">As três páginas</p>
         <h2 className="mt-3 text-3xl font-semibold tracking-tight text-balance text-ink sm:text-[2.125rem]">
-          Um lugar para hoje, um para o mês, um para o ano.
+          Um lugar para hoje, um para a semana, um para o mês.
         </h2>
         <p className="mt-4 leading-relaxed text-pretty text-ink-soft">
-          Cada página cuida de um horizonte — o dia, o mês, o ano — e as setas do
-          cabeçalho levam para frente e para trás em qualquer um deles.
+          Cada página cuida de um horizonte — o dia, a semana, o mês — e as setas
+          do cabeçalho levam para frente e para trás em qualquer um deles.
         </p>
       </div>
 

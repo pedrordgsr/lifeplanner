@@ -25,17 +25,19 @@ model User {
   habitMarks HabitMark[]
   days       Day[]
   tasks      Task[]
-  years      Year[]
-  yearMarks  YearMark[]
+  weekTasks  WeekTask[]
+  weekMarks  WeekMark[]
 
   @@map("users")
 }
 
-/// Mapa do Mês: os 7 hábitos de cada mês (slot 1..7)
+/// Mapa do Mês: os hábitos de cada mês. Quantos existem é escolha do usuário —
+/// cada linha aqui é um hábito, e `slot` é o identificador/ordem dentro do mês
+/// (cresce a cada novo hábito; apagar um deixa um buraco, o que não é problema).
 model Habit {
   userId   Int    @map("user_id")
   monthKey String @map("month_key") // 'YYYY-MM'
-  slot     Int // 1..7
+  slot     Int
   name     String @default("")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -86,26 +88,41 @@ model Task {
   @@map("tasks")
 }
 
-/// Mapa do Ano
-model Year {
-  userId Int    @map("user_id")
-  year   Int
-  metas  String @default("")
+/// Planejamento Semanal: uma tarefa de um dia da semana. Fixa, ela é a mesma
+/// em todas as semanas e o que muda de semana para semana é só a marcação
+/// (WeekMark); solta, ela vive apenas na semana em que foi criada.
+model WeekTask {
+  id       Int    @id @default(autoincrement())
+  userId   Int    @map("user_id")
+  weekday  Int    @map("weekday") // 0..6, 0 = domingo (índice de Date#getDay)
+  text     String
+  position Int    @default(0)
+  /// Segunda-feira em que a tarefa entrou na rotina. Sem isso o gráfico teria
+  /// de dividir as semanas antigas pelo número de tarefas de hoje, e cada
+  /// tarefa nova faria o passado inteiro parecer pior do que foi.
+  createdWeek String @map("created_week")
+  /// Vazio = fixa: aparece em toda semana a partir de `createdWeek`. Preenchido
+  /// = solta, e aquela é a única semana em que ela aparece. Uma coluna guarda as
+  /// duas coisas — se é fixa e, quando não é, de qual semana ela é.
+  onlyWeek String? @map("only_week")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  marks WeekMark[]
 
-  @@id([userId, year])
-  @@map("years")
+  @@index([userId, weekday, position], map: "week_tasks_by_weekday")
+  @@map("week_tasks")
 }
 
-model YearMark {
-  userId Int @map("user_id")
-  year   Int
-  month  Int // 1..12
-  day    Int // 1..31
+/// Planejamento Semanal: a tarefa foi concluída naquela semana.
+model WeekMark {
+  taskId    Int    @map("task_id")
+  weekStart String @map("week_start") // 'YYYY-MM-DD' da segunda-feira
+  userId    Int    @map("user_id")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task WeekTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@id([userId, year, month, day])
-  @@map("year_marks")
+  @@id([taskId, weekStart])
+  @@index([userId, weekStart], map: "week_marks_by_week")
+  @@map("week_marks")
 }

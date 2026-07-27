@@ -33,17 +33,28 @@ npm run build && npm start
 | Página | Rota | O que faz |
 | --- | --- | --- |
 | **Landing** | `/` | Porta de entrada pública: apresenta as três páginas e leva para o login. Quem já está logado vê os botões apontando direto para o planner. |
-| **Mapa do Mês** | `/mes` | Marque os hábitos de hoje tocando nas pastilhas, ou preencha qualquer dia na grade hábitos × dias. A roda radial e o gráfico "Progresso do mês" refletem tudo automaticamente — são só visualização. |
+| **Mapa do Mês** | `/mes` | Você define quantos hábitos o mês tem. Marque os de hoje tocando nas pastilhas, ou preencha qualquer dia na grade hábitos × dias. A roda radial e o gráfico "Progresso do mês" refletem tudo automaticamente — são só visualização. |
 | **Planner Diário** | `/dia` | Tarefas, Inegociáveis, Notas e a Avaliação do dia com as 5 carinhas. |
-| **Mapa do Ano** | `/ano` | Metas do ano e os 12 meses com um círculo por dia. Fevereiro respeita ano bissexto. |
+| **Planejamento Semanal** | `/semana` | Os sete dias, cada um com a sua lista. O alfinete decide o que é rotina: tarefa **fixa** volta toda semana, **solta** fica só na semana em que foi criada. Dois gráficos acompanham o aproveitamento das últimas 12 semanas e o desempenho por dia da semana. |
 
-Navegue entre meses, dias e anos pelas setas do cabeçalho (o período vive na
-URL: `/mes?m=2026-07`, `/dia?d=2026-07-26`, `/ano?y=2026`).
+Navegue entre meses, dias e semanas pelas setas do cabeçalho (o período vive na
+URL: `/mes?m=2026-07`, `/dia?d=2026-07-26`, `/semana?w=2026-07-27` — sempre a
+segunda-feira).
 
 Extras que a folha de papel não tem:
 
-- **copiar do mês anterior** — repete os nomes dos 7 hábitos no mês novo.
+- **quantos hábitos você quiser** — cada mês tem a lista que você criar (de 1 a 30);
+  o botão "Adicionar hábito" cria mais um e o × apaga o hábito e as marcações dele.
+- **copiar do mês anterior** — repete os hábitos do mês anterior (nomes e quantidade)
+  no mês novo.
 - **mover para amanhã** — leva as tarefas não concluídas para o dia seguinte.
+- **rotina que persiste** — a tarefa fixa da semana é criada uma vez e reaparece
+  em todas as semanas; só a marcação é por semana. Tirar uma da rotina apaga
+  também o histórico dela.
+- **fixar e soltar** — o alfinete em cada tarefa (e no campo de adicionar) alterna
+  entre "toda semana" e "só nesta". Fixar recomeça a rotina na semana aberta, para
+  o gráfico não contar como falha um passado em que a tarefa não existia; soltar
+  preserva as marcações antigas, então refixar traz o histórico de volta.
 - Contadores por hábito, aproveitamento do mês, melhor dia, média e sequência atual.
 - Notas e metas se salvam sozinhas, com um aviso discreto de "salvo".
 - As páginas imprimem limpas (`Cmd+P`): os controles de navegação somem.
@@ -73,7 +84,7 @@ Login simples com usuário e senha:
 
 - Senhas guardadas com hash **bcrypt** — nunca em texto puro.
 - Sessão em cookie **httpOnly** assinado (JWT via `jose`), válida por 30 dias.
-- `proxy.ts` bloqueia `/mes`, `/dia` e `/ano` para quem não está logado, e manda
+- `proxy.ts` bloqueia `/mes`, `/dia` e `/semana` para quem não está logado, e manda
   quem já está logado direto para o planner se tentar abrir `/login`. A landing
   (`/`) passa sempre, logada ou não.
 - `requireUser()` confere no banco se o usuário ainda existe; se o cookie estiver
@@ -109,11 +120,11 @@ Detalhes que valem saber:
 - **`username` é `citext`** — é o banco, e não uma checagem na aplicação, que
   impede "Pedro" e "pedro" de virarem duas contas. A extensão é criada na
   primeira migration.
-- **Duas operações usam SQL cru** (`$queryRaw`/`$executeRaw`), com o motivo
-  comentado no código: criar tarefa calculando a posição no próprio INSERT, e
-  mover as pendentes de um dia para outro. As duas são trabalho de conjunto —
-  em chamadas Prisma virariam uma leitura mais um UPDATE por linha, e a
-  primeira ainda abriria uma corrida entre ler o máximo e gravar.
+- **Algumas operações usam SQL cru** (`$queryRaw`/`$executeRaw`), com o motivo
+  comentado no código: criar tarefa calculando a posição no próprio INSERT,
+  mover as pendentes de um dia para outro e marcar uma tarefa da semana
+  conferindo o dono dentro do próprio INSERT. Em chamadas Prisma virariam uma
+  leitura mais uma escrita por linha, e abririam corridas entre ler e gravar.
 - Use sempre a connection string **pooled** (Neon: host com `-pooler`; Supabase:
   porta 6543) — em serverless cada instância abre o seu próprio pool, e o pooler
   é quem impede o banco de estourar o limite de conexões.
@@ -155,7 +166,7 @@ app/
   page.tsx           landing pública
   (auth)/            login, registro e as actions de sessão
   (planner)/         layout protegido + as três rotas
-    mes|dia|ano/     page.tsx (dados) + actions.ts (escrita)
+    mes|dia|semana/  page.tsx (dados) + actions.ts (escrita)
   logout/route.ts    limpa o cookie de sessão
 
 components/
@@ -167,17 +178,18 @@ components/
   layout/            AppHeader, NavLinks, PageHeader, PeriodNav
   auth/              AuthCard (login e cadastro compartilham o mesmo)
   planner/
+    TaskItem         uma tarefa (marcar, editar, remover) — dia e semana usam
     month/           MonthBoard (estado), TodayHabits + HabitGrid (entrada),
                      HabitWheel + ProgressChart (visualização)
-    day/             DayBoard, TaskList, TaskRow, NotesCard,
-                     MoodPicker, Face, DateNav
-    year/            YearBoard, MonthRow
+    day/             DayBoard, TaskList, NotesCard, MoodPicker, Face, DateNav
+    week/            WeekBoard (estado), DayColumn (entrada),
+                     WeekProgressChart + WeekdayBars (visualização)
 
 lib/
   db.ts              client do Prisma (singleton, adapter pg)
   auth.ts            sessão, hash de senha, requireUser()
   session.ts         assinatura/verificação do JWT (edge-safe)
-  dates.ts           meses, dias por mês, ano bissexto
+  dates.ts           meses, dias por mês, ano bissexto, semana (segunda a domingo)
   theme.ts           rampa de cores dos hábitos e do gráfico
   cn.ts              junção de classes
   hooks/useAutosave  gravação automática com debounce

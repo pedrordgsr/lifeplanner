@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
+import { MAX_HABITS, type HabitItem } from "@/lib/habits";
 
 const MONTH_KEY_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -11,10 +12,81 @@ function assertMonthKey(key: string) {
   return key;
 }
 
+/**
+ * O slot é o identificador do hábito dentro do mês, não uma posição de 1 a 7:
+ * ele só precisa ser um inteiro positivo. O limite alto é para barrar lixo.
+ */
 function assertSlot(slot: number) {
-  if (!Number.isInteger(slot) || slot < 1 || slot > 7)
+  if (!Number.isInteger(slot) || slot < 1 || slot > 100_000)
     throw new Error("Hábito inválido");
   return slot;
+}
+
+/** Colisão de chave única do Postgres, via Prisma. */
+function isDuplicateKey(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: string }).code === "P2002"
+  );
+}
+
+async function listHabits(uid: number, monthKeyValue: string) {
+  return db().habit.findMany({
+    where: { userId: uid, monthKey: monthKeyValue },
+    select: { slot: true, name: true },
+    orderBy: { slot: "asc" },
+  });
+}
+
+/** Cria um hábito vazio no fim da lista e devolve o slot dele. */
+export async function addHabit(monthKeyValue: string): Promise<HabitItem> {
+  const { uid } = await requireUser();
+  assertMonthKey(monthKeyValue);
+
+  const total = await db().habit.count({
+    where: { userId: uid, monthKey: monthKeyValue },
+  });
+  if (total >= MAX_HABITS)
+    throw new Error(`Máximo de ${MAX_HABITS} hábitos por mês.`);
+
+  // Dois cliques quase simultâneos calculam o mesmo slot; o banco recusa o
+  // duplicado e a próxima volta pega o número seguinte.
+  for (let tentativa = 0; tentativa < 5; tentativa++) {
+    const { _max } = await db().habit.aggregate({
+      where: { userId: uid, monthKey: monthKeyValue },
+      _max: { slot: true },
+    });
+    const slot = (_max.slot ?? 0) + 1;
+
+    try {
+      await db().habit.create({
+        data: { userId: uid, monthKey: monthKeyValue, slot, name: "" },
+      });
+      revalidatePath("/mes");
+      return { slot, name: "" };
+    } catch (error) {
+      if (!isDuplicateKey(error)) throw error;
+    }
+  }
+
+  throw new Error("Não foi possível criar o hábito. Tente de novo.");
+}
+
+/** Apaga o hábito e todas as marcações dele no mês. */
+export async function removeHabit(monthKeyValue: string, slot: number) {
+  const { uid } = await requireUser();
+  assertMonthKey(monthKeyValue);
+  assertSlot(slot);
+
+  const where = { userId: uid, monthKey: monthKeyValue, slot };
+  await db().$transaction([
+    db().habitMark.deleteMany({ where }),
+    db().habit.deleteMany({ where }),
+  ]);
+
+  revalidatePath("/mes");
 }
 
 export async function saveHabitName(
@@ -26,13 +98,11 @@ export async function saveHabitName(
   assertMonthKey(monthKeyValue);
   assertSlot(slot);
 
-  const nome = name.slice(0, 80);
-  await db().habit.upsert({
-    where: {
-      userId_monthKey_slot: { userId: uid, monthKey: monthKeyValue, slot },
-    },
-    create: { userId: uid, monthKey: monthKeyValue, slot, name: nome },
-    update: { name: nome },
+  // `updateMany` e não `upsert`: se o hábito acabou de ser apagado (o blur do
+  // campo dispara antes do clique no ×), renomear não pode ressuscitá-lo.
+  await db().habit.updateMany({
+    where: { userId: uid, monthKey: monthKeyValue, slot },
+    data: { name: name.slice(0, 80) },
   });
 
   revalidatePath("/mes");
@@ -71,8 +141,14 @@ export async function toggleHabitMark(
   // Sem revalidatePath: o cliente já aplicou a mudança de forma otimista.
 }
 
-/** Copia os nomes dos hábitos do mês anterior e devolve os 7 nomes resultantes. */
-export async function copyHabitsFromPreviousMonth(monthKeyValue: string) {
+/**
+ * Traz os hábitos do mês anterior — inclusive a quantidade deles. Os hábitos
+ * que já existem no mês são mantidos (apagá-los levaria junto as marcações);
+ * o que a cópia faz é criar os que faltam e atualizar os nomes.
+ */
+export async function copyHabitsFromPreviousMonth(
+  monthKeyValue: string,
+): Promise<HabitItem[]> {
   const { uid } = await requireUser();
   assertMonthKey(monthKeyValue);
 
@@ -80,14 +156,26 @@ export async function copyHabitsFromPreviousMonth(monthKeyValue: string) {
   const prev = new Date(y, m - 2, 1);
   const prevKey = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}`;
 
-  const anteriores = await db().habit.findMany({
-    where: { userId: uid, monthKey: prevKey, name: { not: "" } },
-    select: { slot: true, name: true },
-  });
+  const [anteriores, atuais] = await Promise.all([
+    listHabits(uid, prevKey),
+    listHabits(uid, monthKeyValue),
+  ]);
 
-  // No máximo 7 linhas, e $transaction garante que ou copia tudo ou nada.
+  const existentes = new Set(atuais.map((h) => h.slot));
+  let espaco = MAX_HABITS - atuais.length;
+  const aCopiar: HabitItem[] = [];
+  for (const h of anteriores) {
+    if (existentes.has(h.slot)) {
+      aCopiar.push(h); // já existe aqui: a cópia só atualiza o nome
+    } else if (espaco > 0) {
+      aCopiar.push(h);
+      espaco -= 1;
+    }
+  }
+
+  // $transaction garante que ou copia tudo ou nada.
   await db().$transaction(
-    anteriores.map((h) =>
+    aCopiar.map((h) =>
       db().habit.upsert({
         where: {
           userId_monthKey_slot: {
@@ -109,13 +197,5 @@ export async function copyHabitsFromPreviousMonth(monthKeyValue: string) {
 
   revalidatePath("/mes");
 
-  const current = await db().habit.findMany({
-    where: { userId: uid, monthKey: monthKeyValue },
-    select: { slot: true, name: true },
-  });
-
-  return Array.from(
-    { length: 7 },
-    (_, i) => current.find((h) => h.slot === i + 1)?.name ?? "",
-  );
+  return listHabits(uid, monthKeyValue);
 }

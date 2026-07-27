@@ -74,9 +74,6 @@
   --chart-grid-faint: #eef5f2;
   --chart-label: #7b9891;
 
-  /* dia marcado no Mapa do Ano */
-  --year-mark: #3a8073;
-
   /* sombras — sempre esverdeadas e discretas */
   --shadow-sm: 0 1px 2px rgba(18, 49, 44, 0.04),
     0 2px 8px rgba(18, 49, 44, 0.035);
@@ -144,8 +141,6 @@
   --chart-grid: #2f423c;
   --chart-grid-faint: #223330;
   --chart-label: #8aa39d;
-
-  --year-mark: #4aa591;
 
   /* No escuro a sombra some; o que separa as superfícies é o próprio tom. */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.22);

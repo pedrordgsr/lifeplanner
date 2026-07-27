@@ -29,14 +29,24 @@ export const HABIT_COLORS_SOFT = [
   "var(--habit-soft-7)",
 ] as const;
 
+/**
+ * Cor do hábito na posição `i` da lista. Como o usuário escolhe quantos
+ * hábitos quer, a rampa se repete depois do sétimo.
+ */
+export const habitColor = (i: number) =>
+  HABIT_COLORS[((i % HABIT_COLORS.length) + HABIT_COLORS.length) % HABIT_COLORS.length];
+
+export const habitColorSoft = (i: number) =>
+  HABIT_COLORS_SOFT[
+    ((i % HABIT_COLORS_SOFT.length) + HABIT_COLORS_SOFT.length) %
+      HABIT_COLORS_SOFT.length
+  ];
+
 export const CHART_LINE = "var(--chart-line)";
 export const CHART_AREA = "var(--chart-area)";
 export const CHART_GRID = "var(--chart-grid)";
 export const CHART_GRID_FAINT = "var(--chart-grid-faint)";
 export const CHART_LABEL = "var(--chart-label)";
-
-/** Cor do dia marcado no Mapa do Ano. */
-export const YEAR_MARK = "var(--year-mark)";
 
 /** Superfície recuada — o "vazio" das células não marcadas. */
 export const SURFACE_SUNK = "var(--surface-sunk)";

@@ -1,29 +1,37 @@
 "use client";
 
 import { cn } from "@/lib/cn";
-import { HABIT_COLORS } from "@/lib/theme";
+import { habitColor } from "@/lib/theme";
+import { habitLabel, type HabitItem } from "@/lib/habits";
 import { InlineInput } from "@/components/ui/Field";
+import { Close } from "@/components/ui/Icons";
 
 /**
  * Grade hábitos × dias: onde se nomeiam os hábitos e se preenche qualquer dia
  * do mês. É a entrada principal — a roda ao lado só mostra o resultado.
+ * A quantidade de linhas é a quantidade de hábitos que o usuário criou.
  */
 export default function HabitGrid({
-  names,
+  habits,
   days,
   marks,
   todayDay,
+  autoFocusSlot,
   onToggle,
   onRename,
   onCommitName,
+  onRemove,
 }: {
-  names: string[];
+  habits: HabitItem[];
   days: number;
   marks: Set<string>;
   todayDay: number | null;
+  /** Hábito recém-criado: nasce com o cursor no nome. */
+  autoFocusSlot: number | null;
   onToggle: (slot: number, day: number) => void;
   onRename: (slot: number, value: string) => void;
   onCommitName: (slot: number, value: string) => void;
+  onRemove: (slot: number) => void;
 }) {
   const dayList = Array.from({ length: days }, (_, i) => i + 1);
 
@@ -34,7 +42,7 @@ export default function HabitGrid({
         <div className="flex items-end gap-3 pb-2">
           {/* Coluna dos nomes fica presa à esquerda ao rolar na horizontal.
               `self-stretch` dá altura ao vão para ele cobrir os números. */}
-          <span className="sticky left-0 z-10 w-44 shrink-0 self-stretch bg-surface" />
+          <span className="sticky left-0 z-10 w-48 shrink-0 self-stretch bg-surface" />
           <div
             className="grid flex-1 gap-[3px]"
             style={{ gridTemplateColumns: `repeat(${days}, minmax(0, 1fr))` }}
@@ -57,17 +65,17 @@ export default function HabitGrid({
 
         {/* Uma linha por hábito */}
         <div className="space-y-[3px]">
-          {names.map((name, i) => {
-            const slot = i + 1;
-            const color = HABIT_COLORS[i];
+          {habits.map(({ slot, name }, i) => {
+            const color = habitColor(i);
+            const label = habitLabel(name, i);
             const count = dayList.reduce(
               (acc, day) => acc + (marks.has(`${slot}:${day}`) ? 1 : 0),
               0,
             );
 
             return (
-              <div key={slot} className="flex items-center gap-3">
-                <div className="sticky left-0 z-10 flex w-44 shrink-0 items-center gap-2 bg-surface">
+              <div key={slot} className="group flex items-center gap-3">
+                <div className="sticky left-0 z-10 flex w-48 shrink-0 items-center gap-2 bg-surface">
                   <span
                     className="h-2.5 w-2.5 shrink-0 rounded-full"
                     style={{ background: color }}
@@ -76,8 +84,9 @@ export default function HabitGrid({
                   <InlineInput
                     value={name}
                     maxLength={80}
-                    placeholder={`Hábito ${slot}`}
-                    aria-label={`Nome do hábito ${slot}`}
+                    autoFocus={autoFocusSlot === slot}
+                    placeholder={`Hábito ${i + 1}`}
+                    aria-label={`Nome do hábito ${i + 1}`}
                     className="text-sm"
                     onChange={(e) => onRename(slot, e.target.value)}
                     onBlur={(e) => onCommitName(slot, e.target.value)}
@@ -88,6 +97,22 @@ export default function HabitGrid({
                   <span className="shrink-0 text-[0.625rem] tabular-nums text-faint">
                     {count}
                   </span>
+                  {/* No toque não existe hover: o botão fica visível sempre e
+                      só desbota no ponteiro, até a linha ser apontada. */}
+                  <button
+                    type="button"
+                    onClick={() => onRemove(slot)}
+                    aria-label={`Apagar ${label}`}
+                    title={`Apagar ${label}`}
+                    className={cn(
+                      "no-print grid h-5 w-5 shrink-0 place-items-center rounded-full",
+                      "text-faint transition-colors duration-200",
+                      "hover:bg-danger-soft hover:text-danger",
+                      "sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100 sm:focus:opacity-100",
+                    )}
+                  >
+                    <Close className="h-3 w-3" />
+                  </button>
                 </div>
 
                 <div
@@ -105,8 +130,8 @@ export default function HabitGrid({
                         type="button"
                         onClick={() => onToggle(slot, day)}
                         aria-pressed={on}
-                        aria-label={`${name.trim() || `Hábito ${slot}`}, dia ${day}`}
-                        title={`${name.trim() || `Hábito ${slot}`} · dia ${day}`}
+                        aria-label={`${label}, dia ${day}`}
+                        title={`${label} · dia ${day}`}
                         style={on ? { background: color } : undefined}
                         className={cn(
                           "h-6 rounded-[0.3rem] transition-all duration-150",

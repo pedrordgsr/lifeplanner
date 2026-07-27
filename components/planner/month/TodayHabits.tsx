@@ -1,7 +1,8 @@
 "use client";
 
 import { cn } from "@/lib/cn";
-import { HABIT_COLORS } from "@/lib/theme";
+import { habitColor } from "@/lib/theme";
+import { habitLabel, type HabitItem } from "@/lib/habits";
 import { Check } from "@/components/ui/Icons";
 
 /**
@@ -9,21 +10,21 @@ import { Check } from "@/components/ui/Icons";
  * Só aparece quando o mês na tela é o mês corrente.
  */
 export default function TodayHabits({
-  names,
+  habits,
   marks,
   day,
   label,
   onToggle,
 }: {
-  names: string[];
+  habits: HabitItem[];
   marks: Set<string>;
   day: number;
   /** Ex.: "domingo, 26 de julho" */
   label: string;
   onToggle: (slot: number, day: number) => void;
 }) {
-  const doneCount = names.reduce(
-    (acc, _, i) => acc + (marks.has(`${i + 1}:${day}`) ? 1 : 0),
+  const doneCount = habits.reduce(
+    (acc, h) => acc + (marks.has(`${h.slot}:${day}`) ? 1 : 0),
     0,
   );
 
@@ -35,15 +36,14 @@ export default function TodayHabits({
           <strong className="font-semibold tabular-nums text-ink">
             {doneCount}
           </strong>{" "}
-          de {names.length}
+          de {habits.length}
         </p>
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {names.map((name, i) => {
-          const slot = i + 1;
+        {habits.map(({ slot, name }, i) => {
           const on = marks.has(`${slot}:${day}`);
-          const color = HABIT_COLORS[i];
+          const color = habitColor(i);
 
           return (
             <button
@@ -75,7 +75,7 @@ export default function TodayHabits({
               >
                 <Check />
               </span>
-              {name.trim() || `Hábito ${slot}`}
+              {habitLabel(name, i)}
             </button>
           );
         })}

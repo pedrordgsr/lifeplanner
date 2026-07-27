@@ -19,9 +19,9 @@ export default function Hero({ loggedIn }: { loggedIn: boolean }) {
           </h1>
 
           <p className="mt-5 text-[1.0625rem] leading-relaxed text-pretty text-ink-soft">
-            O Lume junta hábitos, tarefas e metas em três telas simples — o mapa
-            do mês, o planner diário e o mapa do ano. Você marca, ele guarda. Sem
-            notificação, sem cobrança, sem barulho.
+            O Lume junta hábitos, tarefas e rotina em três telas simples — o
+            mapa do mês, o planner diário e o planejamento da semana. Você marca,
+            ele guarda. Sem notificação, sem cobrança, sem barulho.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">

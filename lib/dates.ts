@@ -94,3 +94,45 @@ export function formatLongDate(dateKey: string) {
   const [y, m, d] = dateKey.split("-").map(Number);
   return `${d} de ${MONTH_NAMES[m - 1].toLowerCase()} de ${y}`;
 }
+
+/* --- Semana ------------------------------------------------------------
+   A semana do planner vai de segunda a domingo e é identificada pela data da
+   segunda-feira ('YYYY-MM-DD') — a mesma forma das outras chaves, o que deixa
+   comparar e ordenar semanas com `<` e `>` de texto.
+------------------------------------------------------------------------- */
+
+/** Os dias da semana na ordem do planner, no índice de `Date#getDay()`. */
+export const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0] as const;
+
+/** Segunda-feira da semana que contém a data. */
+export function weekStartOf(dateKey: string) {
+  // getDay(): 0 = domingo. Domingo fecha a semana que começou seis dias antes,
+  // e não abre uma nova.
+  const back = (weekdayOf(dateKey) + 6) % 7;
+  return shiftDate(dateKey, -back);
+}
+
+/** Segunda-feira da semana de uma data qualquer, ou a semana de hoje. */
+export function parseWeekKey(key: string | undefined) {
+  return weekStartOf(parseDateKey(key));
+}
+
+export function shiftWeek(weekStart: string, delta: number) {
+  return shiftDate(weekStart, delta * 7);
+}
+
+/** As sete datas da semana, de segunda a domingo. */
+export function weekDates(weekStart: string) {
+  return Array.from({ length: 7 }, (_, i) => shiftDate(weekStart, i));
+}
+
+/** '12 a 18 de janeiro' — ou '29 de dez a 4 de jan' quando vira o mês. */
+export function formatWeekRange(weekStart: string) {
+  const end = shiftDate(weekStart, 6);
+  const [, sm, sd] = weekStart.split("-").map(Number);
+  const [, em, ed] = end.split("-").map(Number);
+
+  const mes = (m: number) => MONTH_NAMES[m - 1].toLowerCase();
+  if (sm === em) return `${sd} a ${ed} de ${mes(em)}`;
+  return `${sd} de ${mes(sm).slice(0, 3)} a ${ed} de ${mes(em).slice(0, 3)}`;
+}
